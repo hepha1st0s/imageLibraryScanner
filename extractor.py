@@ -1,5 +1,5 @@
 import argparse
-from utils.fileProvider import getAllOutputFiles, getSimilarityData
+from utils.fileProvider import getAllOutputFiles, getSimilarityData, appendToFile
 import cv2
 import os
 import math
@@ -62,19 +62,37 @@ for key, value in filteredSimilarityData.iteritems():
 print "Status " + str(len(mergedSimilarityData)) + " images including " + str(sum([len(mergedSimilarityData[x]) for x in mergedSimilarityData if mergedSimilarityData[x]])) + " similarity entries..."
 print str(len([x for x in mergedSimilarityData if mergedSimilarityData[x]])) + " coices to make..." #TODO: FIXME
 cont = raw_input("Continue? [y/n]: ")
+favorizeFotosWithSubstring = raw_input("Favorize any Fotos? Provide Substring: ")
 if not cont.startswith("y"):
     exit(0)
 
 for key, value in mergedSimilarityData.iteritems():
     if len(value) < 1:
+        appendToFile("./output2", key)
         continue
+    elif favorizeFotosWithSubstring and len(value) == 1:
+        if favorizeFotosWithSubstring in key:
+            appendToFile("./output2", key)
+            print "Favorized " + key + " over " + value[0][1]
+            continue
+        elif favorizeFotosWithSubstring in value[0][1]:
+            appendToFile("./output2", value[0][1])
+            print "Favorized " + value[0][1] + " over " + key
+            continue
     loadedImages = [(cv2.imread(key), key)]
     loadedImages = loadedImages + [(cv2.imread(imgPath), imgPath) for (s,imgPath) in value]
     loadedImages = [(cv2.resize(image[0], (int(math.floor(image[0].shape[1] / displaySize)), int(math.floor(image[0].shape[0] / displaySize)))),image[1]) for image in loadedImages]
     print "Choice between:"
     for i, (image, path) in enumerate(loadedImages):
-        cv2.imshow(path, image)
+        cv2.imshow(str(i+1) + ": " + path, image)
         print path
         cv2.moveWindow(path, 50 + (i + 1) * IMAGE_OFFSET,(i + 1) * IMAGE_OFFSET);
-    cv2.waitKey(0)
+    cv2.waitKey(1)
+    choice = raw_input("Your Choice? [single number or multiple column seperated]: ")
+    if not choice:
+        cv2.destroyAllWindows()
+        continue
+    for index in choice.split(","):
+        print "choosing " + loadedImages[int(index)-1][1]
+        appendToFile("./output2", loadedImages[int(index)-1][1])
     cv2.destroyAllWindows()
